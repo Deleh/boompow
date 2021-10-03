@@ -238,11 +238,14 @@ You're currently eligible for {percent_of_total}% of the next prize pool.
         # Subscribe to all necessary topics
         await self.subscribe()
 
-        try:
-            await self.work_handler.start()
-        except Exception as e:
-            logger.critical(e)
-            return False
+        connected = False
+        while not connected:
+            try:
+                await self.work_handler.start()
+                connected = True
+            except Exception as e:
+                logger.critical(e)
+                time.sleep(10)
         self.running = True
         return True
 
