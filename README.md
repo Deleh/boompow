@@ -2,6 +2,91 @@
 
 [![License](https://img.shields.io/github/license/BananoCoin/boompow)](https://github.com/BananoCoin/boompow/blob/master/LICENSE) [![CI](https://github.com/BananoCoin/boompow/workflows/CI/badge.svg)](https://github.com/BananoCoin/boompow/actions?query=workflow%3ACI)
 
+## Fork
+
+This fork of [BananoCoin/boompow](https://github.com/BananoCoin/boompow) makes the project a [Nix Flake](https://nixos.wiki/wiki/Flakes).
+The following things are provided by the Flake:
+
+- `bpow-client` package
+- `nano-work-server` package
+- NixOS module to start both in systemd services
+
+### Usage
+
+Executing the `bpow-client` can be done like this:
+
+```
+$ nix run github:Deleh/boompow#bpow-client
+```
+
+The `nano-work-server` can be started like this:
+
+```
+$ nix run github:Deleh/boompow#nano-work-server
+```
+
+Additional command line arguments can be passed after two dashes:
+
+```
+$ nix run github:Deleh/boompow#bpow-client -- --help
+```
+
+The NixOS module can be used in a flake injected config like this:
+
+```
+inputs.boompow.url = github:Deleh/boompow;
+outputs = { self, nixpks, boompow }: {
+  nixosConfigurations.hostname = {
+    ...
+
+    modules = [
+      boompow.nixosModule {
+        walletAddress = "<your_banano_wallet_address>";
+      };
+    ];
+
+    ...
+  };
+};
+```
+
+The following NixOS options are available:
+
+- `cpuThreads`
+  - Type: `int`
+  - Default: `1`
+  - Description: Specifies how many CPU threads to use. This option is only applied if 'mode' is set to 'cpu'.
+- `gpuAddress`
+  - Type: `str`
+  - Default: `0:0`
+  - Description: Specifies which GPU(s) to use in the form <PLATFORM:DEVICE:THREADS>... THREADS is optional and defaults to 1048576. This option is only applied if 'mode' is set to 'gpu'.
+- `group`
+  - Type: `str`
+  - Default: `bpow`
+  - Description: Group under which the BoomPow client and Nano work server run.
+- `mode`
+  - Type: Enum, either `cpu` or `gpu`
+  - Default: `gpu`
+  - Description: Run the Nano work server in CPU or GPU mode. Use the options 'gpuAddress' and 'cpuThreads' to configure the modes.
+- `port`
+  - Type: `int`
+  - Default: `7000`
+  - Description: Local port of the Nano work server.
+- `user`
+  - Type: `str`
+  - Default: `bpow`
+  - Description: User under which the BoomPow client and Nano work server run.
+- `walletAddress`
+  - Type: `str`
+  - Default: `None`
+  - Description: Banano wallet address which will receive the payments.
+- `workType`
+  - Type: Enum, one of `any`, `ondemand` or `precache`
+  - Default: `any`
+  - Description: Work type, one of 'any', 'ondemand' or 'precache'.
+
+### NixOS
+
 This is [BANANO](https://banano.cc)'s peel of the distributed proof of work ([DPoW](https://github.com/guilhermelawless/nano-dpow)) system created by the Nano community. Special thanks to [Guilherme Lawless](https://github.com/guilhermelawless), [James Coxon](https://github.com/jamescoxon), and everybody else who has worked on creating the DPoW system.
 
 ## What is It?
@@ -28,7 +113,7 @@ All of the aforementioned services will use the BoomPow system, and others servi
 
 BANANO is distributed through [folding@home "mining"](https://bananominer.com), faucet games, giveaways, rain parties on telegram and discord, and more. We are always looking for new ways to distribute BANANO *fairly.*
 
-BoomPow is going to reward contributors with BANANO. Similar to mining, if you provide valid PoW solutions for the BoomPow system you will get regular payments based on how much you contribute. 
+BoomPow is going to reward contributors with BANANO. Similar to mining, if you provide valid PoW solutions for the BoomPow system you will get regular payments based on how much you contribute.
 
 ## Documentation
 
