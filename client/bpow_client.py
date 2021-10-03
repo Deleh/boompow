@@ -1,17 +1,16 @@
-#!/usr/bin/env python3.8
-from config_parse import BpowClientConfig
-config = BpowClientConfig()
+#!/usr/bin/env python
 
-from sys import argv
-import json
-import asyncio
-import math
+from amqtt.client import MQTTClient, ConnectException
+from amqtt.mqtt.constants import QOS_0, QOS_1
+from bpowlib.config_parse import BpowClientConfig
+from bpowlib.logger import get_logger
+from bpowlib.work_handler import WorkHandler
 from time import time
-from amqtt.client import MQTTClient, ClientException, ConnectException
-from amqtt.mqtt.constants import QOS_0, QOS_1, QOS_2
+import asyncio
+import json
+import math
 
-from logger import get_logger
-from work_handler import WorkHandler
+config = BpowClientConfig()
 
 loop = asyncio.get_event_loop()
 logger = get_logger()
@@ -33,7 +32,11 @@ WELCOME = f"""
 
 
 async def send_work_result(client, work_type, block_hash, work):
-    await client.publish(f"result/{work_type}", str.encode(f"{block_hash},{work},{config.payout}", 'utf-8'), qos=QOS_0)
+    await client.publish(
+        f"result/{work_type}",
+        str.encode(f"{block_hash},{work},{config.payout}", "utf-8"),
+        qos=QOS_0,
+    )
 
 
 async def work_server_error_callback():
@@ -41,7 +44,6 @@ async def work_server_error_callback():
 
 
 class BpowClient(object):
-
     def __init__(self):
         self.client = MQTTClient(
             loop=loop,
@@ -50,32 +52,45 @@ class BpowClient(object):
                 "reconnect_retries": 5000,
                 "reconnect_max_interval": 120,
                 "keep_alive": 60,
-                "default_qos": 0
-            }
+                "default_qos": 0,
+            },
         )
-        self.work_handler = WorkHandler(config.worker, self.client, send_work_result, work_server_error_callback, config.async_mode, logger=logger, limit_logging=config.limit_logging)
+        self.work_handler = WorkHandler(
+            config.worker,
+            self.client,
+            send_work_result,
+            work_server_error_callback,
+            config.async_mode,
+            logger=logger,
+            limit_logging=config.limit_logging,
+        )
         self.priority = {}
         self.running = False
         self.server_online = False
 
     def handle_work(self, message):
         try:
-            topics = message.topic.split('/')
+            topics = message.topic.split("/")
             work_type = topics[1]
             # If the message comes from a numbered queue, check if it's a priority queue or not.
             if len(topics) == 3:
-                priority = (self.priority[work_type] == str(topics[2]))
+                priority = self.priority[work_type] == str(topics[2])
             else:
                 priority = False
                 logger.info("did not include queue")
             content = message.data.decode("utf-8")
-            block_hash, difficulty = content.split(',')
+            block_hash, difficulty = content.split(",")
         except Exception as e:
             logger.error(f"Could not parse message {message}:\n{e}")
             return
 
         if len(block_hash) == 64:
-            asyncio.ensure_future(self.work_handler.queue_work(work_type, block_hash, difficulty, priority), loop=loop)
+            asyncio.ensure_future(
+                self.work_handler.queue_work(
+                    work_type, block_hash, difficulty, priority
+                ),
+                loop=loop,
+            )
         else:
             logger.warn(f"Invalid hash {block_hash}")
 
@@ -90,8 +105,17 @@ class BpowClient(object):
         else:
             logger.warn(f"Invalid hash {block_hash}")
 
-    def format_stat_message(self, block_rewarded: str, total_work_accepted: int, ondemand: int, precache: int, paid_units: int, paid_amount: float, percent_of_total: float):
-        paid_amount = math.floor(paid_amount*100)/100
+    def format_stat_message(
+        self,
+        block_rewarded: str,
+        total_work_accepted: int,
+        ondemand: int,
+        precache: int,
+        paid_units: int,
+        paid_amount: float,
+        percent_of_total: float,
+    ):
+        paid_amount = math.floor(paid_amount * 100) / 100
         return f"""Block Rewarded: {block_rewarded}
                          ___
                      .-'`     `'.
@@ -137,25 +161,38 @@ You're currently eligible for {percent_of_total}% of the next prize pool.
 
 
 ---"""
-        
 
     def handle_stats(self, message):
         try:
             stats = json.loads(message.data)
-            ondemand = int(stats['ondemand']) if 'ondemand' in stats else 0
-            precache = int(stats['precache']) if 'precache' in stats else 0
+            ondemand = int(stats["ondemand"]) if "ondemand" in stats else 0
+            precache = int(stats["precache"]) if "precache" in stats else 0
             total_work = ondemand + precache
-            total_credited = int(stats['total_credited']) if 'total_credited' in stats else 0
-            total_paid = float(stats['total_paid']) if 'total_paid' in stats else 0.0
-            percent_of_total = stats['percent_of_total'] if 'percent_of_total' in stats else 0.0
+            total_credited = (
+                int(stats["total_credited"]) if "total_credited" in stats else 0
+            )
+            total_paid = float(stats["total_paid"]) if "total_paid" in stats else 0.0
+            percent_of_total = (
+                stats["percent_of_total"] if "percent_of_total" in stats else 0.0
+            )
             if percent_of_total is None:
                 percent_of_total = 0
             else:
                 percent_of_total = round(float(percent_of_total) * 100.0, 4)
-            #payment_factor = float(stats['payment_factor']) if 'payment_factor' in stats else 0.0
+            # payment_factor = float(stats['payment_factor']) if 'payment_factor' in stats else 0.0
             # Figure out estimated payout
-            #estimated_payout = (total_work - total_credited) * payment_factor
-            logger.info(self.format_stat_message(stats['block_rewarded'], total_work, ondemand, precache, total_credited, total_paid, percent_of_total))
+            # estimated_payout = (total_work - total_credited) * payment_factor
+            logger.info(
+                self.format_stat_message(
+                    stats["block_rewarded"],
+                    total_work,
+                    ondemand,
+                    precache,
+                    total_credited,
+                    total_paid,
+                    percent_of_total,
+                )
+            )
         except Exception as e:
             logger.warn(f"Could not parse stats message {message}:\n{e}")
 
@@ -214,19 +251,22 @@ You're currently eligible for {percent_of_total}% of the next prize pool.
             desired_work = "#"
             await self.client.subscribe([(f"work/#", QOS_0)])
         else:
-            desired_work = config.work_type # precache or ondemand
+            desired_work = config.work_type  # precache or ondemand
             await self.client.subscribe([(f"work/{desired_work}/#", QOS_0)])
-            
-        await self.client.subscribe([
-            (f"cancel/{desired_work}", QOS_1),
-            (f"client/{config.payout}", QOS_1)
-        ])
+
+        await self.client.subscribe(
+            [(f"cancel/{desired_work}", QOS_1), (f"client/{config.payout}", QOS_1)]
+        )
 
     async def get_priority(self):
         # subscribe to the topic the server will respond on with the priority queue
         await self.client.subscribe([(f"priority_response/{config.payout}", QOS_0)])
         # send a message to the server to provide you the priority queue
-        await self.client.publish(f"get_priority/{config.work_type}", str.encode(f"{config.payout}", 'utf-8'), qos=QOS_0)
+        await self.client.publish(
+            f"get_priority/{config.work_type}",
+            str.encode(f"{config.payout}", "utf-8"),
+            qos=QOS_0,
+        )
         try:
             message = await self.client.deliver_message(timeout=2)
             await self.handle_priority(message)
@@ -236,14 +276,16 @@ You're currently eligible for {percent_of_total}% of the next prize pool.
     async def handle_priority(self, message):
         # user receives a topic in the message to prioritize, set that as their priority queue.
         prio = json.loads(message.data)
-        if 'ondemand' in prio:
-            self.priority['ondemand'] = str(prio['ondemand'])
-        if 'precache' in prio:
-            self.priority['precache'] = str(prio['precache'])
+        if "ondemand" in prio:
+            self.priority["ondemand"] = str(prio["ondemand"])
+        if "precache" in prio:
+            self.priority["precache"] = str(prio["precache"])
 
     async def close(self):
         self.running = False
-        await self.client.publish(f"disconnect/{config.payout}", json.dumps(self.priority).encode('utf-8'))
+        await self.client.publish(
+            f"disconnect/{config.payout}", json.dumps(self.priority).encode("utf-8")
+        )
         if self.client:
             await self.client.disconnect()
         if self.work_handler:
@@ -255,17 +297,17 @@ You're currently eligible for {percent_of_total}% of the next prize pool.
             return await self.close()
         logger.info("Setup successful, waiting for work")
         await asyncio.gather(
-            self.message_loop(),
-            self.heartbeat_check_loop(),
-            self.work_handler.loop()
-            )
+            self.message_loop(), self.heartbeat_check_loop(), self.work_handler.loop()
+        )
 
     async def heartbeat_check_loop(self):
         while self.running:
             try:
                 await asyncio.sleep(10)
-                if time () - self.time_last_heartbeat > 10:
-                    logger.warn(f"Server appears to be offline... {int(time () - self.time_last_heartbeat)} seconds since last heartbeat")
+                if time() - self.time_last_heartbeat > 10:
+                    logger.warn(
+                        f"Server appears to be offline... {int(time () - self.time_last_heartbeat)} seconds since last heartbeat"
+                    )
                     self.server_online = False
                 elif not self.server_online:
                     logger.info(f"Server is back online")
@@ -291,6 +333,7 @@ You're currently eligible for {percent_of_total}% of the next prize pool.
                     logger.info("Successfully reconnected")
                 except ConnectException as e:
                     logger.error(f"Connection exception: {e}")
+
 
 if __name__ == "__main__":
     bpow_client = BpowClient()
