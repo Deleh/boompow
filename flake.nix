@@ -76,8 +76,8 @@
           # Systemd service for bpow-client
           systemd.services.bpow-client = {
             description = "BoomPow client";
-            after = [ "network.target" "nano-work-server.service" ];
-            wantedBy = ["multi-user.target"];
+            after = [ "nano-work-server.service" ];
+            wantedBy = [ "multi-user.target" ];
             restartIfChanged = true;
             serviceConfig = {
               Type = "simple";
