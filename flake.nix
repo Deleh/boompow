@@ -80,7 +80,7 @@
             wantedBy = ["multi-user.target"];
             restartIfChanged = true;
             serviceConfig = {
-              type = "simple";
+              Type = "simple";
               User = config.user;
               Group = config.group;
               Restart = "always";
@@ -102,7 +102,7 @@
             wantedBy = ["multi-user.target"];
             restartIfChanged = true;
             serviceConfig = {
-              type = "simple";
+              Type = "simple";
               User = config.user;
               Group = config.group;
               Restart = "always";
