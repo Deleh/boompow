@@ -16,7 +16,7 @@
             description = ''
               Specifies how many CPU threads to use.
 
-              This option os only applied if 'mode' is set to 'cpu'.
+              This option is only applied if 'mode' is set to 'cpu'.
             '';
           };
 
@@ -90,8 +90,7 @@
                 ${self.packages.${config.nixpkgs.localSystem.system}.bpow-client}/bin/bpow-client \
                   --payout ${config.walletAddress} \
                   --work ${config.workType} \
-                  --worker_uri 127.0.0.1:${toString config.port} \
-                  --limit-logging
+                  --worker_uri 127.0.0.1:${toString config.port}
               '';
             };
           };
