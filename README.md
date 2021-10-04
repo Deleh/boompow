@@ -35,7 +35,7 @@ The NixOS module can be used in a flake injected config like this:
 
 ```
 inputs.boompow.url = github:Deleh/boompow;
-outputs = { self, nixpks, boompow }: {
+outputs = { self, nixpkgs, boompow }: {
   nixosConfigurations.hostname = {
     ...
 
