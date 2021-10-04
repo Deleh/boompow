@@ -7,8 +7,13 @@
     # NixOS module
     nixosModule = { config, ... }:
       with nixpkgs.lib;
+      let
+        cfg = config.services.boompow;
+      in
       {
-        options = {
+        options.services.boompow = {
+
+          enable = mkEnableOption "Enable the nano-work-server and bpow-client as systemd services.";
 
           cpuThreads = mkOption {
             type = types.int;
@@ -71,7 +76,7 @@
           };
         };
 
-        config = {
+        config = mkIf cfg.enable {
 
           # Systemd service for bpow-client
           systemd.services.bpow-client = {
@@ -81,16 +86,16 @@
             restartIfChanged = true;
             serviceConfig = {
               Type = "simple";
-              User = config.user;
-              Group = config.group;
+              User = cfg.user;
+              Group = cfg.group;
               Restart = "always";
               RestartSec = "5s";
               PermissionsStartOnly = true;
               ExecStart = ''
                 ${self.packages.${config.nixpkgs.localSystem.system}.bpow-client}/bin/bpow-client \
-                  --payout ${config.walletAddress} \
-                  --work ${config.workType} \
-                  --worker_uri 127.0.0.1:${toString config.port}
+                  --payout ${cfg.walletAddress} \
+                  --work ${cfg.workType} \
+                  --worker_uri 127.0.0.1:${toString cfg.port}
               '';
             };
           };
@@ -104,27 +109,27 @@
             restartIfChanged = true;
             serviceConfig = {
               Type = "simple";
-              User = config.user;
-              Group = config.group;
+              User = cfg.user;
+              Group = cfg.group;
               Restart = "always";
               RestartSec = "5s";
               PermissionsStartOnly = true;
               ExecStart = ''
                 ${self.packages.${config.nixpkgs.localSystem.system}.nano-work-server}/bin/nano-work-server \
-                   ${if config.mode == "gpu" then "--gpu ${config.gpuAddress}" else "--cpu-threads ${toString config.cpuThreads}"} \
-                   --listen-address 127.0.0.1:${toString config.port}
+                   ${if cfg.mode == "gpu" then "--gpu ${cfg.gpuAddress}" else "--cpu-threads ${toString cfg.cpuThreads}"} \
+                   --listen-address 127.0.0.1:${toString cfg.port}
               '';
             };
           };
 
           # User and group
-          users.users = mkIf (config.user == "bpow") {
+          users.users = mkIf (cfg.user == "bpow") {
             bpow = {
-              group = config.group;
+              group = cfg.group;
               isSystemUser = true;
             };
           };
-          users.groups = mkIf (config.group == "bpow") {
+          users.groups = mkIf (cfg.group == "bpow") {
             bpow = {};
           };
 

@@ -41,8 +41,11 @@ outputs = { self, nixpks, boompow }: {
 
     modules = [
       boompow.nixosModule {
-        walletAddress = "<your_banano_wallet_address>";
-      };
+        services.boompow = {
+          enable = true;
+          walletAddress = "ban_1a6q5k53mt4tbf7hgr8dfdpuji67cgi3hwpb4mm84uoixepzst5o7t5a8xbz";
+        };
+      }
     ];
 
     ...
@@ -52,6 +55,10 @@ outputs = { self, nixpks, boompow }: {
 
 The following NixOS options are available:
 
+- `enable`
+  - Type: `bool`
+  - Default: `false`
+  - Description: Enable the nano-work-server and bpow-client as systemd services.
 - `cpuThreads`
   - Type: `int`
   - Default: `1`
