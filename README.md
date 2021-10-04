@@ -5,7 +5,7 @@
 ## Fork
 
 This fork of [BananoCoin/boompow](https://github.com/BananoCoin/boompow) makes the project a [Nix Flake](https://nixos.wiki/wiki/Flakes).
-The following things are provided by the Flake:
+The following things are currently provided:
 
 - `bpow-client` package
 - `nano-work-server` package
@@ -43,7 +43,7 @@ outputs = { self, nixpks, boompow }: {
       boompow.nixosModule {
         services.boompow = {
           enable = true;
-          walletAddress = "ban_1a6q5k53mt4tbf7hgr8dfdpuji67cgi3hwpb4mm84uoixepzst5o7t5a8xbz";
+          walletAddress = "<your_banano_wallet_address>";
         };
       }
     ];
