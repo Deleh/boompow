@@ -95,7 +95,8 @@
                 ${self.packages.${config.nixpkgs.localSystem.system}.bpow-client}/bin/bpow-client \
                   --payout ${cfg.walletAddress} \
                   --work ${cfg.workType} \
-                  --worker_uri 127.0.0.1:${toString cfg.port}
+                  --worker_uri 127.0.0.1:${toString cfg.port} \
+                  --limit-logging
               '';
             };
           };
